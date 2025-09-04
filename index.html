@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 專業人像修圖</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <link rel="stylesheet" href="index.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@1.0.0",
+          "cropperjs": "https://esm.sh/cropperjs@1.6.2"
+        }
+      }
+    </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <header>
+        <h1>AI 專業人像修圖</h1>
+        <p>上傳照片，選擇風格與裁切比例，一鍵生成專業頭像。</p>
+    </header>
+    <main>
+        <div class="controls">
+            <div class="file-input-wrapper">
+                <label for="image-upload" class="file-upload-button">上傳照片</label>
+                <input type="file" id="image-upload" accept="image/*" aria-label="上傳一張照片進行編輯">
+                <span id="file-name">尚未選擇檔案</span>
+            </div>
+            <div class="select-wrapper">
+                <label for="style-select">背景風格</label>
+                <select id="style-select" aria-label="選擇背景風格">
+                    <option value="白底證件">白底證件（標準純白，適合正式用途）</option>
+                    <option value="商務灰">商務灰（淺灰中性，柔光專業）</option>
+                    <option value="科技藍漸層">科技藍漸層（深→淺藍，科技光暈）</option>
+                    <option value="品牌色">品牌色（單色乾淨牆，強調識別）</option>
+                </select>
+            </div>
+             <div class="select-wrapper">
+                <label for="outfit-select">服裝風格</label>
+                <select id="outfit-select" aria-label="選擇服裝風格">
+                    <option value="">保留原圖服裝</option>
+                    <option value="深色西裝外套＋白襯衫">深色西裝外套＋白襯衫（正式）</option>
+                    <option value="深色西裝外套＋淺藍襯衫">深色西裝外套＋淺藍襯衫（無領帶，商務休閒）</option>
+                    <option value="黑色高領毛衣">黑色高領毛衣（簡約科技感）</option>
+                    <option value="淺藍襯衫">淺藍襯衫（清爽專業）</option>
+                    <option value="白襯衫">白襯衫（學術/教育/服務業）</option>
+                    <option value="深色 Polo 衫">深色 Polo 衫（輕鬆專業）</option>
+                    <option value="休閒 T 恤（素色）">休閒 T 恤（素色，親和輕鬆）</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <label for="effect-select">視覺效果</label>
+                <select id="effect-select" aria-label="選擇視覺效果">
+                    <option value="無">無效果</option>
+                    <option value="復古風格">復古風格 (Vintage)</option>
+                    <option value="黑白">黑白 (Black and White)</option>
+                    <option value="深褐色">深褐色 (Sepia)</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <label for="pose-select">角度/構圖</label>
+                <select id="pose-select" aria-label="選擇角度與構圖">
+                    <option value="正面視角（胸上半身）">正面視角（胸上半身）</option>
+                    <option value="左側 45° 半側臉">左側 45° 半側臉</option>
+                    <option value="右側 45° 半側臉">右側 45° 半側臉</option>
+                    <option value="側面（90°）">側面（90°）</option>
+                    <option value="高角度俯拍（胸上半身）">高角度俯拍（胸上半身）</option>
+                    <option value="坐姿側拍（椅子）">坐姿側拍（椅子）</option>
+                    <option value="辦公情境半身">辦公情境半身</option>
+                </select>
+            </div>
+            <div class="select-wrapper">
+                <label for="variations-input">變化張數 (1-5)</label>
+                <input type="number" id="variations-input" min="1" max="5" value="1" aria-label="選擇生成圖片的變化張數">
+            </div>
+            <div class="select-wrapper">
+                <label for="crop-select">精準比例</label>
+                <select id="crop-select" aria-label="選擇精準輸出比例">
+                     <option value="passport">護照照</option>
+                     <option value="taiwan_id">台灣身分證／健保卡</option>
+                     <option value="us_visa">美國簽證／USCIS</option>
+                     <option value="resume">商務履歷照（4:5）</option>
+                     <option value="avatar">社群頭像（1:1）</option>
+                     <option value="cover">封面照（16:9）</option>
+                </select>
+                <div id="size-details" class="size-details"></div>
+            </div>
+            <button id="generate-button" disabled>生成圖片</button>
+        </div>
+        <div id="loading-indicator" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在生成您的圖片... 請稍候片刻。</p>
+        </div>
+        <div id="results-container" class="results-container">
+            <div id="original-image-container" class="image-container" style="display: none;">
+                <h2>原始圖片</h2>
+                <div id="original-image-gallery"></div>
+            </div>
+            <div id="edited-image-container" class="image-container" style="display: none;">
+                <h2>修圖後</h2>
+                <div id="edited-image-gallery" class="image-gallery"></div>
+            </div>
+        </div>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </main>
+    
+    <!-- Cropper Modal -->
+    <div id="crop-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>裁切圖片</h2>
+            <div class="crop-container">
+                <img id="image-to-crop" src="" alt="Image for cropping">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-crop-button" class="button-secondary">取消</button>
+                <button id="confirm-crop-button">確認裁切</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
